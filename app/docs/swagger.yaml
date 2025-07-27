@@ -1,0 +1,196 @@
+basePath: /
+definitions:
+  model.FileURLRequest:
+    properties:
+      file_url:
+        type: string
+    type: object
+  model.Task:
+    properties:
+      archive:
+        type: string
+      count_links:
+        type: integer
+      errors:
+        items:
+          type: string
+        type: array
+      links:
+        items:
+          type: string
+        type: array
+      status:
+        $ref: '#/definitions/model.TaskStatus'
+      task_name:
+        type: string
+    type: object
+  model.TaskStatus:
+    enum:
+    - pending
+    - running
+    - completed
+    - error
+    type: string
+    x-enum-varnames:
+    - StatusP
+    - StatusR
+    - StatusC
+    - StatusE
+host: localhost:8080
+info:
+  contact: {}
+  description: API для загрузки PDF и JPEG, архивации и получения ZIP-файла.
+  title: Archive ZIP API
+  version: "1.0"
+paths:
+  /tasks:
+    get:
+      description: Возвращает массив всех текущих задач с их статусами и информацией
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/model.Task'
+            type: array
+      summary: Получить список всех задач
+      tags:
+      - tasks
+  /tasks/{task_name}:
+    delete:
+      description: Удаляет задачу и освобождает слот для новых задач.
+      parameters:
+      - description: Имя задачи
+        in: path
+        name: task_name
+        required: true
+        type: string
+      responses:
+        "200":
+          description: Сообщение об успешном удалении задачи
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "400":
+          description: Ошибка удаления (задача не найдена)
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Удалить задачу
+      tags:
+      - tasks
+    get:
+      description: Возвращает подробную информацию по задаче, включая ссылки, статус,
+        ошибки и ссылку на архив (если готов)
+      parameters:
+      - description: Имя задачи
+        in: path
+        name: task_name
+        required: true
+        type: string
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/model.Task'
+        "404":
+          description: Задача не найдена
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Получить статус конкретной задачи
+      tags:
+      - tasks
+    post:
+      description: Создает новую задачу с указанным именем. Активных задач не может
+        быть больше 3.
+      parameters:
+      - description: Имя задачи
+        in: path
+        name: task_name
+        required: true
+        type: string
+      responses:
+        "200":
+          description: Сообщение об успешном создании
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "400":
+          description: Ошибка создания (например, превышение лимита задач или задача
+            существует)
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Создать новую задачу на архивирование
+      tags:
+      - tasks
+    put:
+      description: Добавляет ссылку на .pdf или .jpeg файл в указанную задачу. Как
+        только добавлено 3 ссылки, задача начинает обрабатывать архив.
+      parameters:
+      - description: Имя задачи
+        in: path
+        name: task_name
+        required: true
+        type: string
+      - description: URL файла для добавления
+        in: body
+        name: file_url
+        required: true
+        schema:
+          $ref: '#/definitions/model.FileURLRequest'
+      responses:
+        "200":
+          description: Сообщение об успешном добавлении ссылки
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "400":
+          description: Ошибка добавления (например, неверный формат, задача не существует,
+            ссылка уже есть или задача заполнена)
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Добавить ссылку на файл в задачу
+      tags:
+      - tasks
+  /tasks/{task_name}/{file_url_num}:
+    delete:
+      description: Удаляет ссылку по индексу из задачи, если задача не завершена.
+      parameters:
+      - description: Имя задачи
+        in: path
+        name: task_name
+        required: true
+        type: string
+      - description: Порядковый номер ссылки (начиная с 1)
+        in: path
+        name: file_url_num
+        required: true
+        type: integer
+      responses:
+        "200":
+          description: Сообщение об успешном удалении ссылки
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "400":
+          description: Ошибка удаления (например, задача не найдена, задача завершена,
+            неверный индекс)
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Удалить ссылку из задачи
+      tags:
+      - tasks
+swagger: "2.0"
